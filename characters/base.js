@@ -10,11 +10,7 @@ export const characterBase = {
   critRate: 0,
   critDamage: 0,
   skills: [
-    {
-      name: 'Basic',
-      type: 'physical',
-      power: 1
-    }
+    'basic_attack'
   ],
   statuses: []
 }

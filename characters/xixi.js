@@ -1,4 +1,4 @@
-import { characterBase } from "./base"
+import { characterBase } from './base'
 
 export const xixi = {
   ...characterBase,
@@ -12,12 +12,6 @@ export const xixi = {
   speed: 2,
   critRate: 0.1,
   critDamage: 1.5,
-  skills: [
-    {
-      name: 'Basic',
-      type: 'physical',
-      power: 1
-    }
-  ],
+  skills: [{ id: 'basic_attack', coolDown: 0 }],
   statuses: []
 }

@@ -48298,11 +48298,7 @@ var characterBase = {
   critRate: 0,
   critDamage: 0,
   skills: [
-    {
-      name: "Basic",
-      type: "physical",
-      power: 1
-    }
+    "basic_attack"
   ],
   statuses: []
 };
@@ -48320,13 +48316,7 @@ var larion = {
   speed: 1,
   critRate: 0.1,
   critDamage: 1.5,
-  skills: [
-    {
-      name: "Basic",
-      type: "physical",
-      power: 1
-    }
-  ],
+  skills: [{ id: "basic_attack", coolDown: 0 }],
   statuses: []
 };
 
@@ -48343,14 +48333,50 @@ var xixi = {
   speed: 2,
   critRate: 0.1,
   critDamage: 1.5,
-  skills: [
-    {
-      name: "Basic",
-      type: "physical",
-      power: 1
-    }
-  ],
+  skills: [{ id: "basic_attack", coolDown: 0 }],
   statuses: []
+};
+
+// skills/index.js
+var skillList = [
+  {
+    id: "basic_attack",
+    name: "Attack",
+    type: "physical",
+    power: 1,
+    coolDown: 0,
+    effects: ["damage"]
+  }
+];
+var getEffectiveness = (skillType, charType) => {
+  if (skillType === "physical")
+    return 0;
+  if (skillType === "water" && charType === "fire")
+    return 1;
+  if (skillType === "fire" && charType === "earth")
+    return 1;
+  if (skillType === "earth" && charType === "water")
+    return 1;
+  if (skillType === "fire" && charType === "water")
+    return -1;
+  if (skillType === "water" && charType === "earth")
+    return -1;
+  if (skillType === "earth" && charType === "fire")
+    return -1;
+  return 0;
+};
+var useSkill = (skillId, actingChar, affectedChar) => {
+  const skill = skillList.find((skill2) => skill2.id === skillId);
+  skill.effects.forEach((e) => {
+    if (e === "damage") {
+      const isEffective = getEffectiveness(skill.type, affectedChar.type);
+      const damage = isEffective > 0 ? skill.power * actingChar.power * 1.25 : isEffective < 0 ? skill.power * actingChar.power * 0.75 : skill.power * actingChar.power;
+      affectedChar.health -= damage;
+    }
+  });
+  const index = actingChar.skills.findIndex((s) => s.id === skill.id);
+  actingChar.skills[index].coolDown = skill.coolDown;
+  return skill;
 };
 
 // server.js
@@ -48384,7 +48410,7 @@ app.get("/user", async (req, res) => {
   }
 });
 app.post("/session", async (req, res) => {
-  const { username, password } = req.body;
+  const { username } = req.body;
   const user = await users.findOne({ username });
   if (!user)
     return res.json("");
@@ -48458,9 +48484,10 @@ var takeAction = async (session, action) => {
   } else if (action.type === "takeTurn") {
     if (action.details.type === "skill") {
       const character = state.combat.team.find((c) => c.uuid === state.combat.turnOrder[state.combat.turn].uuid);
+      const skill = useSkill(character.skills[action.details.data.skill].id, character, state.combat.enemy[action.details.data.toWho]);
       state.combat.turnLog.push({
         action: action.details.type,
-        skill: character.skills[action.details.data.skill],
+        skill,
         fromWho: character.name,
         toWho: state.combat.enemy[action.details.data.toWho].name
       });
@@ -48484,9 +48511,10 @@ var advanceTurn = async (state) => {
   }
   const npcId = state.combat.turnOrder[state.combat.turn].uuid;
   const npc = state.combat.enemy.find((c) => c.uuid === npcId);
+  const skill = useSkill(npc.skills[0].id, npc, state.combat.team[0]);
   state.combat.turnLog.push({
     action: "skill",
-    skill: npc.skills[0],
+    skill,
     fromWho: npc.name,
     toWho: state.combat.team[0].name
   });

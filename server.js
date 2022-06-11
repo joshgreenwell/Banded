@@ -3,6 +3,8 @@ import { MongoClient, ObjectId } from 'mongodb'
 import { larion } from './characters/larion'
 import { xixi } from './characters/xixi'
 
+import { useSkill } from './skills'
+
 const app = express()
 const port = 3000
 const uri = 'mongodb://localhost:27017'
@@ -42,7 +44,7 @@ app.get('/user', async (req, res) => {
 })
 
 app.post('/session', async (req, res) => {
-  const { username, password } = req.body
+  const { username } = req.body
 
   const user = await users.findOne({ username })
   if (!user) return res.json('')
@@ -139,9 +141,16 @@ const takeAction = async (session, action) => {
       const character = state.combat.team.find(
         (c) => c.uuid === state.combat.turnOrder[state.combat.turn].uuid
       )
+      // TODO: error if character.skills[action.details.data.skill].coolDown > 0
+      // Reduce cooldowns by 1
+      const skill = useSkill(
+        character.skills[action.details.data.skill].id,
+        character,
+        state.combat.enemy[action.details.data.toWho]
+      )
       state.combat.turnLog.push({
         action: action.details.type,
-        skill: character.skills[action.details.data.skill],
+        skill,
         fromWho: character.name,
         toWho: state.combat.enemy[action.details.data.toWho].name
       })
@@ -170,9 +179,10 @@ const advanceTurn = async (state) => {
   // Take NPC action
   const npcId = state.combat.turnOrder[state.combat.turn].uuid
   const npc = state.combat.enemy.find((c) => c.uuid === npcId)
+  const skill = useSkill(npc.skills[0].id, npc, state.combat.team[0])
   state.combat.turnLog.push({
     action: 'skill',
-    skill: npc.skills[0],
+    skill,
     fromWho: npc.name,
     toWho: state.combat.team[0].name
   })
