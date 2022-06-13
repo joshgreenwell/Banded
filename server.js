@@ -1,4 +1,5 @@
 import express from 'express'
+import cors from 'cors'
 import { MongoClient, ObjectId } from 'mongodb'
 import { larion } from './characters/larion'
 import { xixi } from './characters/xixi'
@@ -29,6 +30,7 @@ const run = async () => {
 run()
 
 app.use(express.json())
+app.use(cors())
 
 app.get('/user', async (req, res) => {
   try {
@@ -60,7 +62,7 @@ app.post('/session', async (req, res) => {
       sessionId = session._id
     }
 
-    return res.json(sessionId)
+    return res.json({ sessionId })
   } catch (e) {
     console.error(e)
     return res.sendStatus(500)

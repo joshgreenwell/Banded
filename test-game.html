@@ -1,0 +1,206 @@
+<html>
+  <head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      let session
+
+      const setVisuals = (state) => {
+        document.querySelector(
+          '#state'
+        ).innerHTML = `<b>State:</b> ${state.current}`
+
+        if (state.combat) {
+          let team = ''
+          state.combat.team.forEach((c) => {
+            team += `
+            <div class="flex flex-col w-1/4 p-2 rounded border">
+              <div><div class="bg-red-500 p-2" style="width:${
+                (c.health / c.maxHealth) * 100
+              }%;" />${c.health}/${c.maxHealth}</div>
+              <div><div class="bg-blue-500 p-2" style="width:${
+                (c.resource / c.maxResource) * 100
+              }%;" />${c.resource}/${c.maxResource}</div>
+              <div class="mt-2">${c.name}</div>
+            </div>
+          `
+          })
+          document.querySelector(
+            '#player_team'
+          ).innerHTML = `<div class="flex">${team}</div>`
+
+          let enemy = ''
+          state.combat.enemy.forEach((c) => {
+            enemy += `
+            <div class="flex flex-col w-1/4 p-2 rounded border">
+              <div><div class="bg-red-500 p-2" style="width:${
+                (c.health / c.maxHealth) * 100
+              }%;" />${c.health}/${c.maxHealth}</div>
+              <div><div class="bg-blue-500 p-2" style="width:${
+                (c.resource / c.maxResource) * 100
+              }%;" />${c.resource}/${c.maxResource}</div>
+              <div class="mt-2">${c.name}</div>
+            </div>
+          `
+          })
+          document.querySelector(
+            '#enemy_team'
+          ).innerHTML = `<div class="flex">${enemy}</div>`
+
+          let logs = ''
+          state.combat.turnLog.forEach((l) => {
+            logs += `<div>${JSON.stringify(l)}</div>`
+          })
+          document.querySelector(
+            '#combat_log'
+          ).innerHTML = `<div class="flex flex-col">${logs}</div>`
+        }
+      }
+
+      const getState = () => {
+        fetch(`http://localhost:3000/state?session=${session}`)
+          .then((r) => r.json())
+          .then((state) => {
+            setVisuals(state)
+          })
+      }
+
+      const startCombat = () => {
+        fetch('http://localhost:3000/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session,
+            action: {
+              type: 'startCombat',
+              details: {
+                type: 'transition',
+                data: {
+                  fightId: '0',
+                  team: ['1dc0391e-aa90-4f4f-aa60-c0475a9f1f8e']
+                }
+              }
+            }
+          })
+        })
+          .then((r) => r.json())
+          .then((state) => {
+            setVisuals(state)
+          })
+      }
+
+      const endCombat = () => {
+        fetch('http://localhost:3000/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session,
+            action: {
+              type: 'endCombat'
+            }
+          })
+        })
+          .then((r) => r.json())
+          .then((state) => {
+            document.querySelector(
+              '#state'
+            ).innerHTML = `<b>State:</b> ${state.current}`
+            document.querySelector('#player_team').innerHTML = ''
+            document.querySelector('#enemy_team').innerHTML = ''
+            document.querySelector('#combat_log').innerHTML = ''
+          })
+      }
+
+      const action = () => {
+        fetch('http://localhost:3000/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session,
+            action: {
+              type: 'takeTurn',
+              details: {
+                type: 'skill',
+                data: {
+                  toWho: 0,
+                  skill: 0
+                }
+              }
+            }
+          })
+        })
+          .then((r) => r.json())
+          .then((state) => {
+            setVisuals(state)
+          })
+      }
+
+      window.onload = function () {
+        fetch('http://localhost:3000/user?username=josh')
+          .then((r) => r.json())
+          .then((user) => {
+            document.querySelector(
+              '#user'
+            ).innerHTML = `<b>Username:</b> ${user.username} | <b>Characters:</b> ${user.characters.length}`
+
+            fetch('http://localhost:3000/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: user.username
+              })
+            })
+              .then((r) => r.json())
+              .then(({ sessionId }) => {
+                document.querySelector(
+                  '#session'
+                ).innerHTML = `<b>Session Id:</b> ${sessionId}`
+                session = sessionId
+
+                fetch(`http://localhost:3000/state?session=${sessionId}`)
+                  .then((r) => r.json())
+                  .then((state) => {
+                    setVisuals(state)
+                  })
+              })
+          })
+
+        document.querySelector('#get-state').onclick = getState
+        document.querySelector('#start').onclick = startCombat
+        document.querySelector('#end').onclick = endCombat
+        document.querySelector('#action').onclick = action
+      }
+
+      const actionButton = document.querySelector('#action')
+      const playerTeamElement = document.querySelector('#player_team')
+      const enemyTeamElement = document.querySelector('#enemy_team')
+      const combatLogElement = document.querySelector('#combat_log')
+    </script>
+  </head>
+  <body>
+    <div class="flex flex-col p-8">
+      <div id="user"></div>
+      <div id="session"></div>
+      <div id="state"></div>
+      <div class="my-4">
+        <button
+          id="get-state"
+          class="bg-indigo-500 text-white py-1 px-2 rounded"
+        >
+          Get State
+        </button>
+        <button id="start" class="bg-indigo-500 text-white py-1 px-2 rounded">
+          Start Combat
+        </button>
+        <button id="end" class="bg-indigo-500 text-white py-1 px-2 rounded">
+          End Combat
+        </button>
+        <button id="action" class="bg-indigo-500 text-white py-1 px-2 rounded">
+          Take Action
+        </button>
+      </div>
+      <div id="player_team"></div>
+      <div id="enemy_team" class="my-4"></div>
+      <div id="combat_log"></div>
+    </div>
+  </body>
+</html>
