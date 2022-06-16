@@ -5,7 +5,26 @@ export const skillList = [
     type: 'physical',
     power: 1,
     coolDown: 0,
-    effects: ['damage']
+    effects: ['damage'],
+    cost: 0
+  },
+  {
+    id: 'hamstring',
+    name: 'Hamstring',
+    type: 'physical',
+    power: 1,
+    coolDown: 5,
+    effects: ['damage', 'atk_down'],
+    cost: 1
+  },
+  {
+    id: 'soothing_water',
+    name: 'Soothing Water',
+    type: 'water',
+    power: 1,
+    coolDown: 3,
+    effects: ['heal'],
+    cost: 3
   }
 ]
 
@@ -35,7 +54,18 @@ export const useSkill = (skillId, actingChar, affectedChar) => {
           : isEffective < 0
           ? skill.power * actingChar.power * 0.75
           : skill.power * actingChar.power
-      affectedChar.health -= damage
+      const atkDown = actingChar.statuses.find((s) => s.id === 'atk_down')
+      const finalDamage = atkDown ? damage - damage * atkDown.amount : damage
+      affectedChar.health -= finalDamage
+    } else if (e === 'heal') {
+      const heal = skill.power * actingChar.power
+      actingChar.resource -= skill.cost
+      affectedChar.health = Math.max(
+        affectedChar.health + heal,
+        affectedChar.maxHealth
+      )
+    } else if (e === 'atk_down') {
+      affectedChar.statuses.push({ id: 'atk_down', amount: 0.1 })
     }
   })
   const index = actingChar.skills.findIndex((s) => s.id === skill.id)

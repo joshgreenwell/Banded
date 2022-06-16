@@ -144,7 +144,9 @@ const takeAction = async (session, action) => {
         (c) => c.uuid === state.combat.turnOrder[state.combat.turn].uuid
       )
       // TODO: error if character.skills[action.details.data.skill].coolDown > 0
-      // Reduce cooldowns by 1
+      character.skills.forEach((skill, i) => {
+        character.skills[i].coolDown = Math.max(skill.coolDown - 1, 0)
+      })
       const skill = useSkill(
         character.skills[action.details.data.skill].id,
         character,
@@ -201,6 +203,9 @@ const getTeamFromUuids = async (team, characters) =>
 
 const getTeamForFightId = (fightId) => {
   if (fightId === '0') {
-    return [{ ...larion, uuid: '0' }]
+    return [
+      { ...larion, uuid: '0' },
+      { ...larion, uuid: '1' }
+    ]
   }
 }
